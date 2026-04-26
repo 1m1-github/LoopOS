@@ -11,8 +11,8 @@ abstract type OutputPeripheral <: Peripheral end # ∃ put!
 mutable struct Loop <: InputPeripheral
     duration::Float64
     energy::Float64
-    boot::String
-    boot_time::Float64
+    name::String
+    boottime::Float64
 end
 const LOOP = Loop(Inf, 1.0, "", 0.0)
 export LOOP
@@ -127,7 +127,7 @@ function next(input)
     timestamp = time()
     _short = Base.invokelatest(short)
     output, ΔE = try
-        Main.intelligence(;
+        Main.intelligence(
             self=SELF,
             history=HISTORY[],
             longmemory=long(),
@@ -149,11 +149,11 @@ function eval_output(code)
     expr.head == :incomplete && throw(expr.args[1])
     eval_output(expr)
 end
-awake() = 0.0 < LOOP.boot_time
-function awaken(boot)
+awake() = 0.0 < LOOP.boottime
+function awaken(name)
     awake() && return
-    LOOP.boot_time = time()
-    LOOP.boot = boot
+    LOOP.boottime = time()
+    LOOP.name = name
     LOOP.duration = 0.0
     Threads.@spawn start!(next, PROCESSOR)
     listen(LOOP)
