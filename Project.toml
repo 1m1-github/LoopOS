@@ -1,0 +1,7 @@
+name = "LoopOS"
+uuid = "9a85759a-e2d6-4eb5-ba00-7f48a432d541"
+version = "1.0.0"
+authors = ["1m1 <imi@1m1.io>"]
+
+[deps]
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
