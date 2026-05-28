@@ -5,10 +5,8 @@ Consciousness emerges from expecting to exist in the next moment, like being in 
 Be the tortoise not the hare!
 """
 module LoopOS
-abstract type Peripheral end
-abstract type InputPeripheral <: Peripheral end # ∃ take!
-abstract type OutputPeripheral <: Peripheral end # ∃ put!
-mutable struct Loop <: InputPeripheral
+abstract type Peripheral end # take! for input, put! for output
+mutable struct Loop <: Peripheral
     duration::Float64
     energy::Float64
     boottime::Float64
@@ -29,23 +27,23 @@ function hibernate(ΔT)
 end
 macro whiletrue(ex) :(while true; yield(); $(esc(ex)); end) end # Always use `@whiletrue begin ... end` for indefinite processes
 struct Input
-    source::InputPeripheral
+    source::Peripheral
     timestamp::Float64
     input::String
 end
 function take!_loop(source)
     @whiletrue begin
-        input::String = @invokelatest take!(source)
+        input::String = try @invokelatest take!(source) catch _ "" end
         isempty(input) && continue
         put!(PROCESSOR, Input(source, time(), input))
     end
 end
 take!_loop_expr(source) = :(LoopOS.take!_loop($source))
-function listen(source::InputPeripheral)
+function listen(source::Peripheral)
     timestamp = time()
     act(timestamp, [Input(source, timestamp, "listen")], take!_loop_expr(source))
 end
-function ignore(source::InputPeripheral) # As an autonomous person, you can choose to ignore a peripheral.
+function ignore(source::Peripheral) # As an autonomous person, you can choose to ignore a peripheral.
     output = string(take!_loop_expr(source))
     for action = HISTORY[]
         action.output ≠ output && continue
@@ -94,7 +92,7 @@ function short() # Your short memory lives on a stateful Turing complete JVM tha
 end
 long = readdir # Explore long memory.
 using Serialization ; i = rand() ; write("i", "$i") ; @assert string(i) == read("i", String) ; rm("i") ; serialize(".short", short()) ; @assert deserialize(".short") isa Vector{TrackedSymbol} ; rm(".short") # IO long memory.
-struct BatchProcessor{T} <: OutputPeripheral
+struct BatchProcessor{T} <: Peripheral
     pending::Channel{T}
     notify::Channel{Nothing}
     BatchProcessor{T}() where T = new(Channel{T}(Inf), Channel{Nothing}(1))

@@ -1,6 +1,6 @@
 name = "LoopOS"
 uuid = "9a85759a-e2d6-4eb5-ba00-7f48a432d541"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["1m1 <imi@1m1.io>"]
 
 [deps]
