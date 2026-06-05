@@ -95,7 +95,7 @@ function short() # Your short memory lives on a stateful Turing complete JVM tha
     _short
 end
 long = readdir # Explore long memory.
-using Serialization ; i = rand() ; write("i", "$i") ; @assert string(i) == read("i", String) ; rm("i") ; serialize(".short", short()) ; @assert deserialize(".short") isa Vector{TrackedSymbol} ; rm(".short") # IO long memory.
+using Serialization ; i = rand() ; write(".i", "$i") ; @assert string(i) == read(".i", String) ; rm(".i") ; serialize(".short", short()) ; @assert deserialize(".short") isa Vector{TrackedSymbol} ; rm(".short") # IO long memory.
 struct BatchProcessor{T} <: Peripheral
     pending::Channel{T}
     notify::Channel{Nothing}
