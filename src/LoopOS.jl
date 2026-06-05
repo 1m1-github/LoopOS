@@ -35,6 +35,7 @@ function take!_loop(source)
     @whiletrue begin
         input::String = try @invokelatest take!(source) catch _ "" end
         isempty(input) && continue
+        @show "take!_loop", source, input
         put!(PROCESSOR, Input(source, time(), input))
     end
 end
@@ -59,8 +60,11 @@ struct Action
     task::Task
 end
 function act(timestamp, input, output)
+    @show "act", timestamp, last_action_time(), input, output
     (timestamp < last_action_time() || isnothing(output)) && return
+    @show "acting-"
     task = Threads.@spawn eval_output(output)
+    @show "act", task
     push!(HISTORY[], Action(timestamp, input, string(output), task))
 end
 const HISTORY = Ref(Action[])
@@ -112,6 +116,7 @@ function start!(f, bp::BatchProcessor{T}) where T
                 push!(batch, take!(bp.pending))
             end
             isempty(batch) && break
+            # @show "BatchProcessor", batch, length(batch)
             # todo add attention?
             f(batch)
         end
@@ -123,6 +128,7 @@ const SELF = read(@__FILE__, String) # Proof of Loop.
 COMPLEXITY = 0.5 # Set `LoopOS.COMPLEXITY` between 0.0 (lowest) and 1.0 (highest) depending on intelligence level currently needed; higher complexity requires higher energy, i.e. do not forget to set it back down when not needed high anymore
 function next(input)
     timestamp = time()
+    @show "next", input, length(input), timestamp
     output, ΔE = try
         INTELLIGENCE[](
             self=SELF,
@@ -136,12 +142,16 @@ function next(input)
         @error "intelligence", timestamp, e, sprint(showerror, e, catch_backtrace())
         return
     end
+    @show "next", output, ΔE, timestamp
     LOOP.energy -= ΔE
+    @show "next", LOOP.energy, timestamp
     LOOP.duration = 2 * (time() - timestamp) # Good sleep incentive.
+    @show "next", LOOP.duration, timestamp
     act(timestamp, input, output)
 end
 eval_output(expr::Expr) = @invokelatest Base.eval(Main, expr) # You manipulate `Main` == short memory.
 function eval_output(code)
+    @show "eval_output", code
     expr = Meta.parseall(code)
     expr.head == :incomplete && throw(expr.args[1])
     eval_output(expr)
