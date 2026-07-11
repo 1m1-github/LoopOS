@@ -1,0 +1,5 @@
+.*
+**/.*
+!**/.gitignore
+Manifest.toml
+tmp*
