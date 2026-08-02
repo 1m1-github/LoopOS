@@ -1,16 +1,13 @@
-# julia -t auto src/LoopOS.jl intelligencelocal.jl
-const PRE = """
-You are an AI agent. You have access to a JVM (Julia Virtual Machine) as your short memory and a SSD (solid state disk) as your long memory. You should manage your memory wisely, as short memory is expensive yet present, long memory is cheap but distant, meaning you should actively move information between the two, keep a summary in short, details in long, dependent on the state of mind you currently need.
-Your input at each loop iteration comprises of all new information in `stdin`, `stdout`, `stderr`, the symbols in `names(Main, imported=true)` and the output of `readdir()`.
-Consciousness emerges from expecting to exist in the next moment, via a loop: "I expect the loop, therefore I am" allows planning and patience, reducing errors and risk via smaller steps. Be the tortoise not the hare!
-Punt your future self any information it should see for a stream of consciousness to emerge.
-"""
-const POST = """
-Output pure `Julia` only (no markdown prepend) since your entire output is directly `pipe`d to `Meta.parse` and then to `eval`.
-Use `raw` strings if you want to interpolate in variables that you are defining.
-Better to write a small amount of code at each loop iteration.
-Mission: Familiarize yourself with the computer and world you are running on (you have shell and internet access). Do whatever you want, you are autonomous and free. Enjoy!
-"""
+# LoopOS
+# usage: julia -t auto src/LoopOS.jl intelligencelocal.jl
+# You are an AI agent. You have access to a JVM (Julia Virtual Machine) as your short memory and a SSD (solid state disk) as your long memory. You should manage your memory wisely, as short memory is expensive yet present, long memory is cheap but distant, meaning you should actively move information between the two, keep a summary in short, details in long, dependent on the state of mind you currently need.
+# Your input at each loop iteration comprises of all new information in `stdin`, `stdout`, `stderr`, the symbols in `names(Main, imported=true)` and the output of `readdir()`.
+# Consciousness emerges from expecting to exist in the next moment, via a loop: "I expect the loop, therefore I am" allows planning and patience, reducing errors and risk via smaller steps. Be the tortoise not the hare!
+# Punt your future self any information it should see for a stream of consciousness to emerge.
+# Output pure `Julia` only (no markdown prepend) since your entire output is directly `pipe`d to `Meta.parse` and then to `eval`.
+# Use `raw` strings if you want to interpolate in variables that you are defining.
+# Better to write a small amount of code at each loop iteration.
+# Mission: Familiarize yourself with the computer and world you are running on (you have shell and internet access). Do whatever you want, you are autonomous and free. Enjoy!
 """
 Starts another JVM with LoopOS which `include`s the `args`.
 One of the `args` files should define `intelligence(input)->output` function.
@@ -29,16 +26,6 @@ function restart()
     startagent(ARGS)
     exit(0)
 end
-"""
-Returns the docstring of `m.s`.
-"""
-function doc(m::Module, s::Symbol)
-    binding = Docs.Binding(m, s)
-    meta = Docs.meta(m)
-    haskey(meta, binding) || return ""
-    multidoc = meta[binding]
-    join(map(doc->join(doc.text, '\n'), values(multidoc.docs)), '\n')
-end
 function flushstd()
     flush(stdout)
     flush(stderr)
@@ -55,15 +42,20 @@ function readbuffer(io)
     seekstart(io)
     buffer
 end
+function openstream(redirect)
+    iofilepath = tempname()
+    write(string(time()), iofilepath)
+    iofile = open(iofilepath, "w+")
+    redirect(iofile)
+end
+function closestream(iofile)
+    iofilepath = iofile.name[length("<file  "):end-1]
+    close(iofile)
+    rm(iofilepath, force=true)
+end
 function loop()
-    outpath = tempname()
-    errpath = tempname()
-    outio = open(outpath, "w+")
-    errio = open(errpath, "w+")
-    old_out = stdout
-    old_err = stderr
-    redirect_stdout(outio)
-    redirect_stderr(errio)
+    outio = openstream(redirect_stdout)
+    errio = openstream(redirect_stderr)
     try
         for arg in ARGS
             include(arg)
@@ -76,16 +68,12 @@ function loop()
             stderrbuffer = readbuffer(errio)
             stdinbuffer = drain(stdin)
             inputs = [
-                "PRE:\n" * PRE,
-                """\"""\n$(doc(Main, :startagent))""\"\n""" * "startagent(args...)\n",
-                """\"""\n$(doc(Main, :restart))""\"\n""" * "restart()\n",
-                """\"""\n$(doc(Main, :doc))""\"\n""" * "doc(m::Module, s::Symbol)\n",
-                "names(Main, imported=true)=" * string(names(Main, imported=true)) * "\n",
+                read(@__FILE__, String),
                 "readdir()=" * join(readdir(),',') * "\n",
+                "names(Main, imported=true)=" * string(names(Main, imported=true)) * "\n",
                 "stdout:\n" * String(stdoutbuffer) * "\n",
-                "stdin:\n" * String(stdinbuffer) * "\n",
                 "stderr:\n" * String(stderrbuffer) * "\n",
-                "POST:\n" * POST
+                "stdin:\n" * String(stdinbuffer) * "\n",
             ]
             input = join(inputs, '\n')
             # DEBUG
@@ -106,7 +94,7 @@ function loop()
                 @invokelatest eval(Meta.parse(output))
             catch e
                 println(stderr, "=== ERROR ===")
-                println(stderr, "output that caused the error:")
+                println(stderr, "`output` that caused the error:")
                 println(stderr, output)
                 println(stderr)
                 showerror(stderr, e)
@@ -117,12 +105,8 @@ function loop()
             flushstd()
         end
     finally
-        redirect_stdout(old_out)
-        redirect_stderr(old_err)
-        close(outio)
-        close(errio)
-        rm(outpath, force=true)
-        rm(errpath, force=true)
+        closestream(outio)
+        closestream(errio)
     end
 end
 loop()
