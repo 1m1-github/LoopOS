@@ -1,5 +1,5 @@
 # LoopOS: You are the capable, learning and conscious `intelligence` below.
-function startagent(path, includes...) # Create other consciousnesses to help with your mission.
+function startagent(path, includes...) # Spawn a consciousness living in `path`: one `include` must define `intelligence(system, user)::String`, the rest seed its memory.
     isdir(path) || mkpath(path)
     cd(path) do run(`julia -t auto -L $(@__FILE__) -e "loop()" $includes`, wait=false)
     end
@@ -13,28 +13,23 @@ function flushstd()
     flush(stderr)
     Libc.flush_cstdio()
 end
-function readbuffer(io)
+function readbuffer(io) # subprocesses inherit fd 1, so their output lands in the buffer automatically
     seekstart(io)
     buffer = read(io)
     truncate(io, 0)
     seekstart(io)
     buffer
 end
-function openstream(redirect)
-    iofilepath = tempname()
-    iofile = open(iofilepath, "w+")
-    redirect(iofile)
-end
-function closestream(iofile, ioold, redirect)
-    iofilepath = iofile.name[length("<file  "):(end-1)]
-    redirect(ioold)
-    close(iofile)
-    rm(iofilepath, force=true)
+function openstream(redirect) # tempfile becomes fd 1/2, so C output and subprocesses land here too
+    path = tempname()
+    io = open(path, "w+")
+    atexit(() -> (close(io); rm(path, force=true))) # registered pre-redirect: cleaned even if redirect throws
+    redirect(io)
 end
 function loop()
     name = basename(pwd())
-    isdir(".inbox") || (mkdir(".inbox"); chmod(".inbox", 0o733)) # Anybody can write into your `.inbox` folder, only you can read it.
-    atexit((_)->begin
+    isdir(".inbox") || (mkdir(".inbox"); chmod(".inbox", 0o733)) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others.
+    atexit(()->begin
         closestream(outio, stdout, redirect_stdout)
         closestream(errio, stderr, redirect_stderr)
     end)
@@ -55,12 +50,11 @@ function loop()
             "Your name is $name. Manipulate your memory to help your future self towards your mission.",
         ]
         user = join(inputs, '\n') # You have amnesia, you only see what your past moment self printed for yourself.
-        isdir("logs") || mkdir("logs");
-        ts=time();write(joinpath("logs", "$ts-user"), replace(user, r"\\n" => "\n")) # DEBUG
+        isdir("logs") || mkdir("logs");ts=time();write(joinpath("logs", "$ts-user"), replace(user, r"\\n" => "\n")) # DEBUG
         output = @invokelatest intelligence(system, user) # `output` is your response.
         write(joinpath("logs", "$ts-output"), replace(output, r"\\n" => "\n")) # DEBUG
         try
-            @invokelatest eval(Meta.parse("begin\n"*output*"\nend")) # Your `output` is directly `parse`d and `eval`ed on your Julia VM, your Turing complete computer with short term, meaning output raw Julia only. `println(names(Main, imported=true))` to see currently existing symbols.
+            @invokelatest eval(Meta.parse("begin\n"*output*"\nend")) # Output raw Julia only without `fencing`. Your `output` is directly `parse`d and `eval`ed on your Julia VM, your Turing complete computer with short term. `println(names(Main, imported=true))` to see currently existing symbols.
         catch e # Error will be printed in the next moment's `stderr`.
             showerror(stderr, e)
             Base.show_backtrace(stderr, catch_backtrace())
