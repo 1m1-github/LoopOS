@@ -52,13 +52,10 @@ function handle_sse(bb)
 end
 
 anybrowserconnected = false
-function awakenbroadcastbrowser(; name, port, functions)
-    run(`tailscale serve --bg --https=443 --set-path=/$name http://127.0.0.1:$port`)
+function awakenbroadcastbrowser(; port, connect, functions)
     @async HTTP.listen!("127.0.0.1", port) do stream
         target = stream.message.target
         uri = URI(target)
-        @info "awakenbroadcastbrowser", uri, target
-        @info "awakenbroadcastbrowser", uri.path
         if target == "/"
             HTTP.setstatus(stream, 200)
             HTTP.setheader(stream, "Content-Type" => "text/html")
@@ -68,6 +65,7 @@ function awakenbroadcastbrowser(; name, port, functions)
             bb = BroadcastBrowser(stream)
             push!(BROWSERCLIENTS, bb)
             anybrowserconnected = true
+            connect(stream)
             handle_sse(bb)
             delete!(BROWSERCLIENTS, bb)
             anybrowserconnected = !isempty(BROWSERCLIENTS)

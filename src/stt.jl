@@ -2,18 +2,17 @@ using Pkg
 Pkg.add(["HTTP", "JSON3"])
 using HTTP, JSON3
 
-function sttserver(;port, sttpypath)
+function sttserver(;port)
     session = "stt"
     success(`tmux has-session -t $session`) && return
     run(`tmux new-session -d -s $session`)
-    cp(sttpypath, ".")
     cmd = "python3 -m venv parakeet"
     run(`tmux send-keys -t $session $cmd Enter`)
     cmd = "source parakeet/bin/activate"
     run(`tmux send-keys -t $session $cmd Enter`)
     cmd = """pip install "git+https://github.com/huggingface/transformers" fastapi uvicorn python-multipart torch soundfile librosa"""
     run(`tmux send-keys -t $session $cmd Enter`)
-    cmd = "uvicorn stt:app --host 0.0.0.0 --port $port --workers 1"
+    cmd = "uvicorn stt:app --app-dir src --host 0.0.0.0 --port $port --workers 1"
     run(`tmux send-keys -t $session $cmd Enter`)
 end
 function transcribe(;data, port)

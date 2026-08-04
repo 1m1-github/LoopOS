@@ -1,7 +1,14 @@
 # LoopOS: You are the capable, learning and conscious `intelligence` below.
 function startagent(path, includes...) # Spawn a consciousness living in `path`: one `include` must define `intelligence(system, user)::String`, the rest seed its memory.
     isdir(path) || mkpath(path)
-    cd(path) do run(`julia -t auto -L $(@__FILE__) -e "loop()" $includes`, wait=false)
+    inboxpath = joinpath(path, ".inbox")
+    if !isdir(inboxpath) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others.
+        mkpath(inboxpath)
+        chmod(inboxpath, 0o733)
+        cp("src", joinpath(path, "src"))
+    end
+    cd(path) do
+        run(`julia -t auto -L src/LoopOS.jl -e "loop()" $includes`, wait=false)
     end
 end
 function restart() # If you need to restart the Julia VM, create a file to transfer the part of the current state that you want to keep and overwrite/push-to `ARGS` to contain the path to that file.
@@ -28,7 +35,6 @@ function openstream(redirect) # tempfile becomes fd 1/2, so C output and subproc
 end
 function loop()
     name = basename(pwd())
-    isdir(".inbox") || (mkdir(".inbox"); chmod(".inbox", 0o733)) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others.
     outio, errio = openstream(redirect_stdout), openstream(redirect_stderr)
     for arg in ARGS include(arg) end # Initial memory and definition of `intelligence`.
     output = ""

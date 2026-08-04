@@ -1,12 +1,7 @@
+include("stt.jl")
 include("broadcastbrowser.jl")
 
-function runbrowser(;path, port)
-    awakenbroadcastbrowser(name=basename(path), port=port, functions=Dict(
-    "/audio" => (data) -> begin
-        text = transcribe(data=data, sttport=port)
-        write(joinpath(path, ".inbox", string(time()) * "-browser-audio.txt"), text)
-    end))
-
+function runbrowser(; path, browserport, sttport)
     JSLISTEN = raw"""
     (async()=>{
     window.AUDIOSTREAM=await navigator.mediaDevices.getUserMedia({audio:true})
@@ -71,5 +66,14 @@ function runbrowser(;path, port)
     })()
     """
 
-    put!(BroadcastBrowser,JSLISTEN)
+    awakenbroadcastbrowser(
+        port=browserport,
+        connect=(_) -> put!(BroadcastBrowser, JSLISTEN),
+        functions=Dict(
+            "/audio" => (data) -> begin
+                text = transcribe(data=data, port=sttport)
+                write(joinpath(path, ".inbox", string(time()) * "-browser-audio.txt"), text)
+            end))
+
+    wait(Condition())
 end

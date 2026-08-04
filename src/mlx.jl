@@ -1,4 +1,5 @@
 include("intelligencelocalopenaiapi.jl")
+
 intelligence(system, user) = intelligence(
     host="127.0.0.1",
     port=8080,
@@ -11,6 +12,7 @@ intelligence(system, user) = intelligence(
         "chat_template_kwargs" => Dict("enable_thinking" => false)
     ),
 )
+
 function mlxserver()
     session = "transformer"
     success(`tmux has-session -t $session`) && return

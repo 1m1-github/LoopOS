@@ -21,5 +21,5 @@ Edit `intelligence.jl` to define an `intelligence(system::AbstractString,user::A
 ## Run
 
 ```
-julia -e 'include("src/LoopOS.jl");startagent(abspath("Dona"), "intelligence.jl", "batteries.jl")'
+julia -L src/LoopOS.jl -e 'startagent(abspath("Dona"), joinpath("src","intelligence.jl"), joinpath("src","batteries.jl"))'
 ```
