@@ -29,10 +29,6 @@ end
 function loop()
     name = basename(pwd())
     isdir(".inbox") || (mkdir(".inbox"); chmod(".inbox", 0o733)) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others.
-    atexit(()->begin
-        closestream(outio, stdout, redirect_stdout)
-        closestream(errio, stderr, redirect_stderr)
-    end)
     outio, errio = openstream(redirect_stdout), openstream(redirect_stderr)
     for arg in ARGS include(arg) end # Initial memory and definition of `intelligence`.
     output = ""
@@ -42,7 +38,7 @@ function loop()
         stdoutbuffer = readbuffer(outio) # `stdout` is consumed, meaning `print`ing is a one-shot channel to exactly the next moment
         stderrbuffer = readbuffer(errio)
         system = read(@__FILE__, String) # Proof of Loop.
-        inputs = [
+        inputs = [ # You have 3 levels of memory: current is what you need to know in the next moment, short term are the variables of the Julia VM, long term is a solid-state drive. In the next moment, you only see whatever you print for yourself into current memory.
             "output=" * output * "\n", # Your previous `output`.
             "stdout:\n" * String(stdoutbuffer) * "\n", # Any `print` to `stdout`.
             "stderr:\n" * String(stderrbuffer) * "\n", # Any `print` to `stderr`.
