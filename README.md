@@ -1,6 +1,6 @@
 # LoopOS
 
-An conscious, capable and learning agent in < 70 lines.
+An conscious, capable and learning agent in < 60 lines.
 
 ## Install julia
 
