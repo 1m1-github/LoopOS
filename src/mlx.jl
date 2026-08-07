@@ -7,8 +7,8 @@ intelligence(system, user) = intelligence(
     user=user,
     model="Qwen/Qwen3.6-27B",
     bodyargs=Dict(
-        "temperature" => 1.0,
-        "max_tokens" => 2^12,
+        "temperature" => 0.9,
+        "max_tokens" => 2^10,
         "chat_template_kwargs" => Dict("enable_thinking" => false)
     ),
 )

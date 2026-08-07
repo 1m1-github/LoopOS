@@ -4,7 +4,6 @@ using HTTP, JSON3, Base64, Dates, SMTPClient, Serialization, Gumbo, Cascadia
 
 "Uses DuckDuckGo API for searching returning a Dict with :title, :snippet and :url keys/"
 function web_search(query::String; num_results::Int=10)
-    # @info "TOGBasicTools.jl, web_search"
     encoded_query = HTTP.URIs.escapeuri(query)
     url = "https://html.duckduckgo.com/html/?q=$(encoded_query)"
     response = HTTP.get(url)
@@ -25,7 +24,6 @@ end
 
 "Removes HTML tags to extract plain text."
 function browse_page(url::String)
-    @info "TOGBasicTools.jl, browse_page"
     resp = HTTP.get(url)
     html = String(resp.body)
 
@@ -62,7 +60,6 @@ end
 
 "Handles binary download safely."
 download_file(url::String, local_path::String) = begin
-   @info "TOGBasicTools.jl, download_file" 
     HTTP.download(url, local_path)
 end
 
@@ -72,7 +69,6 @@ Use `expanduser` instead of `~`.
 `throw`s on error.
 """
 function run_shell(cmd::Cmd)::String
-    # @info "TOGBasicTools.jl, run_shell"
     out = IOBuffer()
     err = IOBuffer()
     proc = open(pipeline(cmd; stdout=out, stderr=err), "r")
@@ -85,7 +81,6 @@ run_shell(command::String) = run_shell(Cmd(split(command)))
 
 "Supports common HTTP methods like GET POST."
 function send_http_request(method::String, url::String, headers::Dict=Dict(), body::String="")
-    # @info "TOGBasicTools.jl, send_http_request"
     hpairs = Pair.(keys(headers), values(headers))
     resp = HTTP.request(method, url, hpairs, body)
     String(resp.body)
@@ -96,7 +91,6 @@ parse_json(json_str::String) = JSON3.read(json_str)
 
 """`send_email(["<to@email.org>"], "body", "message")`."""
 function send_email(to::Vector{String}, subject::String, message::String)
-    # @info "TOGBasicTools.jl, send_email"
     from = "<email@1m1.io>"
     body = get_body(to, from, subject, message)
     # body = get_body(to, from, subject, message; cc, replyto)

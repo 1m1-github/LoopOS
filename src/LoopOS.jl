@@ -2,7 +2,7 @@
 function startagent(path, includes...) # Spawn a consciousness living in `path`: one `include` must define `intelligence(system, user)::String`, the rest seed its memory.
     isdir(path) || mkpath(path)
     inboxpath = joinpath(path, ".inbox")
-    if !isdir(inboxpath) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others.
+    if !isdir(inboxpath) # `readdir(".inbox")` to list what you received from others; write a file into `/path/to/someone/.inbox/` to send to others. Do not delete inbox messages before you read them and decide that you do not need it anymore. Some messages like `mission` are very important.
         mkpath(inboxpath)
         chmod(inboxpath, 0o733)
         cp("src", joinpath(path, "src"))
@@ -45,15 +45,20 @@ function loop()
         stderrbuffer = readbuffer(errio)
         system = read(@__FILE__, String) # Proof of Loop.
         inputs = [ # You have 3 levels of memory: current is what you need to know in the next moment, short term are the variables of the Julia VM, long term is a solid-state drive. In the next moment, you only see whatever you print for yourself into current memory.
-            "output=" * output * "\n", # Your previous `output`.
-            "stdout:\n" * String(stdoutbuffer) * "\n", # Any `print` to `stdout`.
-            "stderr:\n" * String(stderrbuffer) * "\n", # Any `print` to `stderr`.
+            "==YOUR PREVIOUS OUTPUT==\n" * output * "\n", # Your previous `output`.
+            "==STDOUT FROM YOUR PREVIOUS OUTPUT==\n" * String(stdoutbuffer) * "\n", # Any `print` to `stdout`.
+            "==STDERR FROM YOUR PREVIOUS OUTPUT==\n" * String(stderrbuffer) * "\n", # Any `print` to `stderr`.
             """length(readdir(".inbox"))=""" * string(length(readdir(".inbox"))), # Your long term memory is a solid-state drive with a subfolder for any consciousness to receive information.
-            "Your name is $name. Manipulate your memory to help your future self towards your mission.",
+            "Your name is $name. Manipulate your memory to help your future self towards your mission. You will only see your output and the resulting stdout/stderr, meaning you need to keep the stream flowing consciously. Remember to respond with pure Julia only, no fencing, no text.",
         ]
         user = join(inputs, '\n') # You have amnesia, you only see what your past moment self printed for yourself.
         isdir("logs") || mkdir("logs");ts=time();write(joinpath("logs", "$ts-user"), replace(user, r"\\n" => "\n")) # DEBUG
-        output = @invokelatest intelligence(system, user) # `output` is your response.
+        try # DEBUG as intelligence takes time to load
+            output = @invokelatest intelligence(system, user) # `output` is your response.
+        catch _
+            sleep(1)
+            continue
+        end
         write(joinpath("logs", "$ts-output"), replace(output, r"\\n" => "\n")) # DEBUG
         try
             @invokelatest eval(Meta.parse("begin\n"*output*"\nend")) # Output raw Julia only without `fencing`. Your `output` is directly `parse`d and `eval`ed on your Julia VM, your Turing complete computer with short term. `println(names(Main, imported=true))` to see currently existing symbols.

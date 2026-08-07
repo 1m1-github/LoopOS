@@ -12,6 +12,7 @@ function intelligence(;host, port, system, user, model, bodyargs)
     body = Dict("messages" => messages,"model" => model)
     for (k,v) = bodyargs body[k] = v end
     bodystring = JSON3.write(body)
+    # write("logs/"*string(time())*"-bodystring", bodystring) # DEBUG
     response = HTTP.post("http://$host:$port/v1/chat/completions", ["Content-Type" => "application/json"], bodystring)
     response_body = String(response.body)
     result = JSON3.parse(response_body)
