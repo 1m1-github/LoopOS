@@ -3,3 +3,8 @@
 !**/.gitignore
 Manifest.toml
 tmp*
+*.*
+!src/*
+Dona
+Janet
+Anna
